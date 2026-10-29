@@ -1,0 +1,14 @@
+{
+  "CEL.Title": "Aether Ledger",
+  "CEL.Open": "Open Aether Ledger",
+  "CEL.BadDrop": "Drop the right document type here.",
+  "CEL.SetFx": "Ledger: screen effects",
+  "CEL.SetFxHint": "Canvas shake and particle bursts for ledger events (this client only). Shake is also disabled by Foundry's photosensitive mode.",
+  "CEL.SetSound": "Ledger: sound effects",
+  "CEL.SetSoundHint": "Coin, thud and fanfare sounds (this client only).",
+  "CEL.SetVolume": "Ledger: sound volume",
+  "CEL.SetDebug": "Ledger: debug logging",
+  "CEL.SetDebugHint": "Log each month-close step to the browser console (F12). Useful when reporting a bug.",
+  "CEL.SetBanner": "Ledger: header banner image",
+  "CEL.SetBannerHint": "Optional wide image shown behind the ledger title for everyone. Leave empty for the built-in wood and brass look."
+}
