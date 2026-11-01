@@ -36,6 +36,7 @@ export function makeSandbox() {
   ];
   s.events = [{ id: uid(), ...EVENT_TABLE[0], level: 3 }, { id: uid(), ...EVENT_TABLE[5], level: 2 }, { id: uid(), ...EVENT_TABLE[4], level: 2 },
     { id: uid(), title: "Ambush", kind: "external", level: 2, inc: -6, mor: -1, months: 0, routeId: s.routes[0].id, desc: "test" }];
+  s.pcs = [{ id: uid(), uuid: "Actor.test", name: "PC Preview", img: "icons/svg/mystery-man.svg", role: "foreman", task: "production", adj: 0 }];
   s.tasks = [{ id: uid(), userId: "u", userName: "Tester", who: "Tester", task: "marketing", label: "Marketing Campaign", total: 15, nat: 12, tn: 9, income: 100, mor: 0, success: true, text: "ok" }];
   s.history = [{ month: 5, income: 500, costs: 400, profit: 100 }, { month: 6, income: 600, costs: 450, profit: 150 }];
   s.contractLog = [{ month: 6, title: "Old job", client: "X", outcome: "done", amount: 200 }];
@@ -76,8 +77,7 @@ export async function runSelfTest(App) {
   });
 
   // ---- Assets ----
-  await step("Assets", "code-only build", () =>
-    "v1.7: UI + FX ship zero binary assets — textures are CSS gradients, crest/gears are inline SVG, particle sprites are canvas-drawn, audio is WebAudio-synthesized");
+  await step("Assets", "local procedural graphics", () => "Modern SVG/CSS artwork and synthesized sound; no remote dependencies");
   await step("Assets", "stylesheet loaded", () => {
     const ok = [...document.styleSheets].some(ss => { try { return ss.href?.includes(MID); } catch (e) { return false; } });
     return ok ? "" : "WARN: the module stylesheet was not found on the page";
@@ -162,7 +162,7 @@ export async function runSelfTest(App) {
   // ---- Templates ----
   const render = foundry.applications?.handlebars?.renderTemplate ?? globalThis.renderTemplate;
   const path = `modules/${MID}/templates/ledger.hbs`;
-  const tabs = ["overview", "tasks", "staff", "execs", "places", "routes", "contracts", "spies", "deals", "branches", "events", "trophies"];
+  const tabs = ["overview", "tasks", "duty", "staff", "execs", "places", "routes", "contracts", "spies", "deals", "branches", "events", "trophies"];
   const fresh = migrateState(foundry.utils.deepClone(DEFAULT_STATE()));
   for (const [label, state, isGM, userId] of [["full, GM", sb, true, "tester"], ["full, owner", sb, false, "u1"], ["full, other player", sb, false, "u9"], ["empty, GM", fresh, true, "tester"]]) {
     for (const tab of tabs) {

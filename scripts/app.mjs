@@ -16,26 +16,23 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static instance = null;
   tab = "overview";
   _animTab = null;
-  _pulse = false; // set before a same-tab render that should replay entry animations (e.g. month close)
-  _prevCounts = null; // last counted values per data-ck key, so count-ups run from the old value
-
-  /** Slam a wax-stamp overlay onto the ledger window, then fade it out. */
+  _pulse = false;
+  _prevCounts = null;
   stamp(html, cls = "") {
     const el = this.element;
-    if (!el) return;
+    if (!el || !game.settings.get(MID, "fx")) return;
     const d = document.createElement("div");
     d.className = "cel-stamp-overlay";
     d.innerHTML = `<div class="cel-stamp ${cls}"><span class="cel-stamp-txt">${html}</span></div>`;
-    el.appendChild(d);
-    playSound("thud.wav");
+    el.appendChild(d); playSound("thud.wav");
     setTimeout(() => d.classList.add("out"), 1500);
     setTimeout(() => d.remove(), 2200);
   }
 
   static DEFAULT_OPTIONS = {
-    id: "cel-ledger", classes: ["cel-app"], tag: "div",
+    id: "cel-ledger", classes: ["cel-app", "cel-modern"], tag: "div",
     window: { title: "CEL.Title", icon: "fa-solid fa-gears", resizable: true },
-    position: { width: 1200, height: 860 },
+    position: { width: 1240, height: 860 },
     actions: {
       celShowTab: LedgerApp.onShowTab, celCloseMonth: LedgerApp.onCloseMonth,
       celRemove: LedgerApp.onRemove, celOpenScene: LedgerApp.onOpenScene,
@@ -58,8 +55,16 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   };
   static get PARTS() {
     let tpl = "";
-    try { tpl = (game.settings.get(MID, "tpl") || "").trim(); } catch (e) { /* not registered yet */ }
+    try { tpl = (game.settings.get(MID, "tpl") || "").trim(); } catch (e) { /* not registered */ }
     return { main: { template: tpl || `modules/${MID}/templates/ledger.hbs` } };
+  }
+  static navigation(tab) {
+    return [
+      ["overview","Overview","chart-line","Company"],["tasks","Monthly Tasks","list-check",""],
+      ["duty","PC Duty","user-astronaut","People"],["staff","Crew","users",""],["execs","Boardroom","briefcase",""],
+      ["places","Workshops","building","Operations"],["routes","Trade","route",""],["contracts","Contracts","file-signature",""],["branches","Branches","sitemap",""],
+      ["spies","Intrigue","eye","Strategy"],["deals","Deals","handshake",""],["events","Events","bolt",""],["trophies","Trophies","award",""]
+    ].map(([id,label,icon,group])=>({id,label,icon,group,active:id===tab}));
   }
 
   static open() { LedgerApp.instance ??= new LedgerApp(); LedgerApp.instance.render({ force: true }); }
@@ -95,7 +100,7 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     let banner = "";
     try { banner = game.settings.get(MID, "banner") || ""; } catch (e) { /* not registered yet */ }
     let theme = "walnut";
-    try { theme = game.settings.get(MID, "theme") || "walnut"; } catch (e) { /* not registered yet */ }
+    try { theme = game.settings.get(MID, "theme") || "walnut"; } catch (e) { /* not registered */ }
     const events = s.events.map(e => {
       const impact = eventImpact(e, s);
       return { ...e, impact, internal: e.kind === "internal", target: threatTN(e, s),
@@ -195,6 +200,7 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         domains: role.domains.map(d => PC_TASKS[d].label) };
     });
     return {
+      navItems: LedgerApp.navigation(tab), pageTitle: LedgerApp.navigation(tab).find(x=>x.active)?.label ?? "Overview",
       isGM, state: s, f, staff, places, events, avg, avgMood: mood(avg), banner, theme, gauges: LedgerApp.makeGauges(f, avg),
       version: game.modules?.get(MID)?.version ?? "", schema: s.schema,
       floorTypes: floorTypeChoices(), goodChoices: goodChoices(), modeChoices: modeChoices(), specChoices: specChoices(),
@@ -252,18 +258,15 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       z.addEventListener("dragleave", () => z.classList.remove("hot"));
       z.addEventListener("drop", ev => { z.classList.remove("hot"); this.onDrop(ev, z.dataset.kind, z.dataset.target, z.dataset.id); });
     });
-    // Theme colorway lives on the window element so it reaches the title bar and window backdrop too.
     let theme = "walnut";
-    try { theme = game.settings.get(MID, "theme") || "walnut"; } catch (e) { /* not registered yet */ }
+    try { theme = game.settings.get(MID, "theme") || "walnut"; } catch (e) { /* not registered */ }
     for (const c of [...el.classList]) if (c.startsWith("theme-")) el.classList.remove(c);
     el.classList.add(`theme-${theme}`);
-    // Entry animations play on tab switch, and on same-tab re-renders flagged via _pulse (month close).
     const animate = this._animTab !== this.tab || this._pulse;
-    this._animTab = this.tab;
-    this._pulse = false;
+    this._animTab = this.tab; this._pulse = false;
     if (!animate) return;
-    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      el.querySelector(".gauges")?.classList.add("anim-in");
+    if (game.settings.get(MID, "fx") && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      el.querySelector(".cel-body")?.classList.add("anim-in");
       this._prevCounts ??= {};
       el.querySelectorAll("[data-count]").forEach(n => {
         const to = Number(n.dataset.count) || 0, key = n.dataset.ck || n.textContent;
@@ -1186,20 +1189,20 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       volume: game.settings.get(MID, "volume"), banner: game.settings.get(MID, "banner"), tpl: game.settings.get(MID, "tpl")
     };
     const content = `
-      <form class="standard-form">
-        <div class="form-group"><label>Template</label>
+      <div class="standard-form">
+        <div class="form-group"><label>Color palette</label>
           <select name="theme" ${isGM ? "" : "disabled"}>
-            <option value="walnut" ${cur.theme === "walnut" ? "selected" : ""}>Steampunk Walnut</option>
-            <option value="verdigris" ${cur.theme === "verdigris" ? "selected" : ""}>Verdigris Patina</option>
-            <option value="noir" ${cur.theme === "noir" ? "selected" : ""}>Ink &amp; Silver</option>
+            <option value="walnut" ${cur.theme === "walnut" ? "selected" : ""}>Graphite / Aurora</option>
+            <option value="verdigris" ${cur.theme === "verdigris" ? "selected" : ""}>Deep Ocean</option>
+            <option value="noir" ${cur.theme === "noir" ? "selected" : ""}>Obsidian / Violet</option>
           </select></div>
         <div class="form-group"><label>Screen effects</label><input type="checkbox" name="fx" ${cur.fx ? "checked" : ""}></div>
         <div class="form-group"><label>Sound</label><input type="checkbox" name="sound" ${cur.sound ? "checked" : ""}></div>
         <div class="form-group"><label>Volume</label><input type="range" name="volume" min="0" max="1" step="0.05" value="${cur.volume}"></div>
         <div class="form-group"><label>Header banner image</label><input type="text" name="banner" value="${cur.banner ?? ""}" placeholder="path/to/image.jpg (GM)" ${isGM ? "" : "disabled"}></div>
         <div class="form-group"><label>Custom template (advanced)</label><input type="text" name="tpl" value="${cur.tpl ?? ""}" placeholder="modules/my-module/ledger-custom.hbs (GM)" ${isGM ? "" : "disabled"}></div>
-        <p class="notes">Template, banner and custom template are world settings (GM only). Effects, sound and volume are per-client.</p>
-      </form>`;
+        <p class="notes">Palette, banner and custom template are world settings (GM only). Effects, sound and volume are per-client.</p>
+      </div>`;
     const v = await DialogV2.wait({
       window: { title: "Ledger Settings" },
       content,
@@ -1320,7 +1323,6 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
           ${dLines ? `<ul class="routes">${dLines}</ul>` : ""}</div>` });
       }
       dbg("close month: done");
-      // Replay entry animations with real from→to deltas and slam the wax stamp onto the ledger.
       const app = LedgerApp.instance;
       if (app?.rendered) { app._pulse = true; app.render(); }
       app?.stamp(`MONTH ${month} CLOSED<small>${win ? "PROFIT" : "LOSS"} ${f.profit >= 0 ? "+" : ""}${f.profit} · TREASURY ${s.cash}</small>`, win ? "win" : "loss");

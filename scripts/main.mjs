@@ -47,8 +47,6 @@ Hooks.once("ready", () => {
 Hooks.on("createChatMessage", msg => playFx(msg.flags?.[MID]));
 
 Hooks.on("getSceneControlButtons", controls => {
-  // Official v14 shape: Record keyed by control name; token group is "tokens" (plural),
-  // tools object-keyed. Older builds: array of groups / singular "token".
   const tool = { name: "celLedger", title: "CEL.Open", icon: "fa-solid fa-gears",
     order: 99, button: true, visible: true, onClick: () => LedgerApp.toggle(), onChange: () => LedgerApp.toggle() };
   const add = g => {
@@ -58,8 +56,6 @@ Hooks.on("getSceneControlButtons", controls => {
     return true;
   };
   if (add(controls?.tokens ?? controls?.token)) return;
-  const list = Array.isArray(controls) ? controls
-    : controls instanceof Map ? [...controls.values()]
-    : Object.values(controls ?? {});
+  const list = Array.isArray(controls) ? controls : controls instanceof Map ? [...controls.values()] : Object.values(controls ?? {});
   add(list.find(g => g?.name === "tokens" || g?.name === "token") ?? list[0]);
 });
