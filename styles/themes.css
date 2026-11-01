@@ -1,0 +1,444 @@
+/* Cypher Enterprise Ledger — v2.1 theme pack.
+   Each theme overrides the CSS custom properties and a few structural
+   elements (fonts, borders, radii, backdrops) of the .cel-modern shell.
+   The shell stays identical; only the look changes. */
+
+/* ---- bundled fonts (no network access needed) ---- */
+@font-face { font-family: "Cinzel"; src: url("../fonts/cinzel.ttf") format("truetype"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Special Elite"; src: url("../fonts/rye.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "IM Fell English"; src: url("../fonts/imfell.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "Rajdhani"; src: url("../fonts/rajdhani.ttf") format("truetype"); font-weight: 100 700; font-display: swap; }
+@font-face { font-family: "Orbitron"; src: url("../fonts/orbitron.ttf") format("truetype"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Exo 2"; src: url("../fonts/exo2.ttf") format("truetype"); font-weight: 100 900; font-display: swap; }
+
+/* ============ 1. MAGITECH — arcane laboratory ============ */
+.cel-modern.theme-magitech {
+  --bg: #12091f;
+  --sidebar: #0d0718;
+  --panel: #1b1030;
+  --raised: #241642;
+  --border: #3b2a63;
+  --tx: #f4edff;
+  --muted: #c7b4e3;
+  --accent: #a78bfa;
+  --soft: rgba(167, 139, 250, 0.10);
+  --violet: #6ee7f5;
+  --amber: #f0b26a;
+  --bad: #f2a3b1;
+  --ok: #8ff2c6;
+  --radius: 16px;
+  --font: "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  --display-font: "Cinzel", Georgia, serif;
+  --shadow: 0 10px 34px rgba(80, 40, 160, 0.35);
+}
+.cel-modern.theme-magitech .cel-header {
+  background:
+    linear-gradient(90deg, #12091f, rgba(18,9,31,0.70)),
+    url("../assets/themes/magitech-bg.jpg") right center / 620px 465px no-repeat,
+    radial-gradient(ellipse 55% 120% at 50% -10%, rgba(167, 139, 250, 0.16), transparent 70%),
+    var(--bg);
+}
+.cel-modern.theme-magitech .cel-workspace {
+  background:
+    linear-gradient(rgba(18,9,31,0.68), rgba(18,9,31,0.68)),
+    url("../assets/themes/magitech-bg.jpg") center / cover no-repeat fixed,
+    var(--bg);
+}
+.cel-modern.theme-magitech .cel-panel,
+.cel-modern.theme-magitech .cel-card,
+.cel-modern.theme-magitech .route,
+.cel-modern.theme-magitech .contract,
+.cel-modern.theme-magitech .rival,
+.cel-modern.theme-magitech .deal,
+.cel-modern.theme-magitech .division,
+.cel-modern.theme-magitech .branch,
+.cel-modern.theme-magitech .seat {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(167, 139, 250, 0.07), transparent 55%),
+    linear-gradient(150deg, #ffffff03, transparent 70%),
+    var(--panel);
+  border-color: var(--border);
+  position: relative;
+}
+/* faint sigil ring in the corner of each card */
+.cel-modern.theme-magitech .cel-card::after,
+.cel-modern.theme-magitech .route::after,
+.cel-modern.theme-magitech .contract::after {
+  content: "";
+  position: absolute;
+  right: -34px;
+  bottom: -34px;
+  width: 110px;
+  height: 110px;
+  border: 1px solid rgba(167, 139, 250, 0.12);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.cel-modern.theme-magitech .ring {
+  background: conic-gradient(from 210deg, var(--accent), var(--violet), var(--accent));
+  border-radius: 50%;
+  padding: 4px;
+  box-shadow: 0 0 18px rgba(167, 139, 250, 0.35);
+}
+.cel-modern.theme-magitech .ring img { border-radius: 50%; }
+.cel-modern.theme-magitech .metric { border-color: color-mix(in srgb, var(--accent) 28%, var(--border)); }
+.cel-modern.theme-magitech .primary { color: #1b1030; }
+.cel-modern.theme-magitech button:hover { box-shadow: 0 0 0 1px var(--accent), 0 0 14px rgba(167, 139, 250, 0.25); }
+
+/* ============ 2. STEAMPUNK — riveted brass workshop ============ */
+.cel-modern.theme-steampunk {
+  --bg: #1d1410;
+  --sidebar: #17100c;
+  --panel: #2a1d16;
+  --raised: #352419;
+  --border: #5a3f28;
+  --tx: #f4e8d8;
+  --muted: #dcc8a4;
+  --accent: #d9a05b;
+  --soft: rgba(217, 160, 91, 0.10);
+  --violet: #9ec5c8;
+  --amber: #e0c084;
+  --bad: #e8897c;
+  --ok: #a8cf8f;
+  --radius: 6px;
+  --font: "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  --display-font: "Rye", Georgia, serif;
+  --shadow: 0 10px 26px rgba(0, 0, 0, 0.5);
+}
+.cel-modern.theme-steampunk .cel-header {
+  background:
+    linear-gradient(90deg, #1d1410, rgba(29,20,16,0.70)),
+    url("../assets/themes/steampunk-bg.jpg") right center / 620px 465px no-repeat,
+    linear-gradient(180deg, #2a1d16, #1d1410);
+  border-bottom: 3px double var(--border);
+}
+.cel-modern.theme-steampunk .cel-workspace {
+  background:
+    linear-gradient(rgba(29,20,16,0.68), rgba(29,20,16,0.68)),
+    url("../assets/themes/steampunk-bg.jpg") center / cover no-repeat fixed,
+    var(--bg);
+}
+.cel-modern.theme-steampunk .cel-panel,
+.cel-modern.theme-steampunk .cel-card,
+.cel-modern.theme-steampunk .route,
+.cel-modern.theme-steampunk .contract,
+.cel-modern.theme-steampunk .rival,
+.cel-modern.theme-steampunk .deal,
+.cel-modern.theme-steampunk .division,
+.cel-modern.theme-steampunk .branch,
+.cel-modern.theme-steampunk .seat {
+  background: linear-gradient(150deg, rgba(255, 235, 200, 0.03), transparent 65%), var(--panel);
+  border: 1px solid var(--border);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.35),
+    var(--shadow);
+  position: relative;
+}
+/* rivets in each corner */
+.cel-modern.theme-steampunk .cel-card::before,
+.cel-modern.theme-steampunk .route::before,
+.cel-modern.theme-steampunk .contract::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border: 1px dashed rgba(217, 160, 91, 0.18);
+  border-radius: 3px;
+  pointer-events: none;
+}
+.cel-modern.theme-steampunk .metric { border-color: #5a3f28; }
+.cel-modern.theme-steampunk .primary { color: #1d1410; }
+.cel-modern.theme-steampunk .primary:hover { color: #1d1410; }
+.cel-modern.theme-steampunk progress { border-radius: 0; }
+
+/* ============ 3. FANTASY — illuminated parchment ============ */
+.cel-modern.theme-fantasy {
+  --bg: #20180f;
+  --sidebar: #191209;
+  --panel: #2c2115;
+  --raised: #382a1a;
+  --border: #6b512c;
+  --tx: #f5ead2;
+  --muted: #dcc8a4;
+  --accent: #d9b36a;
+  --soft: rgba(217, 179, 106, 0.10);
+  --violet: #9bb4d9;
+  --amber: #e6c684;
+  --bad: #d97f6a;
+  --ok: #9bc981;
+  --radius: 10px;
+  --font: "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  --display-font: "IM Fell English", Georgia, serif;
+  --display-font: "UnifrakturMaguntia", "IM Fell English", serif;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.cel-modern.theme-fantasy .cel-header {
+  background:
+    linear-gradient(90deg, #2c2115, rgba(44,33,21,0.70)),
+    url("../assets/themes/fantasy-bg.jpg") right center / 620px 465px no-repeat,
+    radial-gradient(ellipse 80% 140% at 50% 0%, rgba(217, 179, 106, 0.10), transparent 75%),
+    var(--bg);
+  border-bottom: 4px double var(--border);
+}
+.cel-modern.theme-fantasy .cel-workspace {
+  background:
+    linear-gradient(rgba(44,33,21,0.68), rgba(44,33,21,0.68)),
+    url("../assets/themes/fantasy-bg.jpg") center / cover no-repeat fixed,
+    var(--bg);
+}
+.cel-modern.theme-fantasy .cel-panel,
+.cel-modern.theme-fantasy .cel-card,
+.cel-modern.theme-fantasy .route,
+.cel-modern.theme-fantasy .contract,
+.cel-modern.theme-fantasy .rival,
+.cel-modern.theme-fantasy .deal,
+.cel-modern.theme-fantasy .division,
+.cel-modern.theme-fantasy .branch,
+.cel-modern.theme-fantasy .seat {
+  background: linear-gradient(160deg, rgba(255, 240, 200, 0.04), transparent 60%), var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+/* gold drop-cap flourish on panel headings */
+.cel-modern.theme-fantasy .panel-heading h3::first-letter {
+  color: var(--accent);
+  font-size: 1.25em;
+  font-weight: 700;
+}
+.cel-modern.theme-fantasy .primary { color: #20180f; }
+.cel-modern.theme-fantasy .ring { background: linear-gradient(140deg, var(--accent), #8a6a2e); }
+
+/* ============ 4. CYBERPUNK — neon glitch terminal ============ */
+.cel-modern.theme-cyberpunk {
+  --bg: #0a0a0f;
+  --sidebar: #07070b;
+  --panel: #12121c;
+  --raised: #1a1a28;
+  --border: #2e2e45;
+  --tx: #e6f2ff;
+  --muted: #aeb8d0;
+  --accent: #f7e75a;
+  --soft: rgba(247, 231, 90, 0.08);
+  --violet: #ff5ec4;
+  --amber: #6ef7e7;
+  --bad: #ff6b7a;
+  --ok: #5ef7a5;
+  --radius: 2px;
+  --font: "Rajdhani", "Segoe UI", sans-serif;
+  --display-font: "Orbitron", "Rajdhani", sans-serif;
+  --shadow: 0 8px 26px rgba(0, 0, 0, 0.7);
+}
+.cel-modern.theme-cyberpunk .cel-header {
+  background:
+    linear-gradient(90deg, #0a0a0f, rgba(10,10,15,0.70)),
+    url("../assets/themes/cyberpunk-bg.jpg") right center / 620px 465px no-repeat,
+    linear-gradient(115deg, var(--bg), #150a1c 55%, var(--bg));
+  border-bottom: 1px solid var(--violet);
+  box-shadow: 0 6px 24px rgba(255, 94, 196, 0.12);
+}
+.cel-modern.theme-cyberpunk .cel-workspace {
+  background:
+    linear-gradient(rgba(10,10,15,0.68), rgba(10,10,15,0.68)),
+    url("../assets/themes/cyberpunk-bg.jpg") center / cover no-repeat fixed,
+    var(--bg);
+}
+.cel-modern.theme-cyberpunk .cel-panel,
+.cel-modern.theme-cyberpunk .cel-card,
+.cel-modern.theme-cyberpunk .route,
+.cel-modern.theme-cyberpunk .contract,
+.cel-modern.theme-cyberpunk .rival,
+.cel-modern.theme-cyberpunk .deal,
+.cel-modern.theme-cyberpunk .division,
+.cel-modern.theme-cyberpunk .branch,
+.cel-modern.theme-cyberpunk .seat {
+  background: linear-gradient(160deg, rgba(255, 94, 196, 0.04), transparent 55%), var(--panel);
+  border: 1px solid var(--border);
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+  border-radius: 0;
+}
+.cel-modern.theme-cyberpunk .metric {
+  border-left: 3px solid var(--accent);
+  border-radius: 0;
+}
+.cel-modern.theme-cyberpunk .primary {
+  color: #0a0a0f;
+  background: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+.cel-modern.theme-cyberpunk .primary:hover { color: #0a0a0f; }
+.cel-modern.theme-cyberpunk .ring { background: linear-gradient(140deg, var(--violet), var(--accent)); }
+.cel-modern.theme-cyberpunk button { text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* ============ 5. SCI-FI — clean holographic HUD ============ */
+.cel-modern.theme-scifi {
+  --bg: #0b1015;
+  --sidebar: #080d11;
+  --panel: #111922;
+  --raised: #17222e;
+  --border: #243340;
+  --tx: #e3f0f7;
+  --muted: #a5b8c8;
+  --accent: #4fc3f7;
+  --soft: rgba(79, 195, 247, 0.09);
+  --violet: #9fa8f5;
+  --amber: #7fd0c8;
+  --bad: #f08080;
+  --ok: #66d9a0;
+  --radius: 4px;
+  --font: "Exo 2", "Segoe UI", sans-serif;
+  --display-font: "Exo 2", sans-serif;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.cel-modern.theme-scifi .cel-header {
+  background:
+    linear-gradient(90deg, #0b1015, rgba(11,16,21,0.70)),
+    url("../assets/themes/scifi-bg.jpg") right center / 620px 465px no-repeat,
+    var(--bg);
+}
+.cel-modern.theme-scifi .cel-workspace {
+  background:
+    linear-gradient(rgba(11,16,21,0.68), rgba(11,16,21,0.68)),
+    url("../assets/themes/scifi-bg.jpg") center / cover no-repeat fixed,
+    var(--bg);
+}
+.cel-modern.theme-scifi .cel-panel,
+.cel-modern.theme-scifi .cel-card,
+.cel-modern.theme-scifi .route,
+.cel-modern.theme-scifi .contract,
+.cel-modern.theme-scifi .rival,
+.cel-modern.theme-scifi .deal,
+.cel-modern.theme-scifi .division,
+.cel-modern.theme-scifi .branch,
+.cel-modern.theme-scifi .seat {
+  background: linear-gradient(170deg, rgba(79, 195, 247, 0.05), transparent 60%), var(--panel);
+  border: 1px solid var(--border);
+  position: relative;
+}
+/* HUD corner brackets */
+.cel-modern.theme-scifi .cel-card::before,
+.cel-modern.theme-scifi .route::before,
+.cel-modern.theme-scifi .contract::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(79, 195, 247, 0.12);
+  clip-path: polygon(0 0, 18px 0, 18px 2px, 2px 2px, 2px 18px, 0 18px);
+  pointer-events: none;
+}
+.cel-modern.theme-scifi .metric { border-top: 2px solid var(--accent); }
+.cel-modern.theme-scifi .primary { color: #0b1015; }
+.cel-modern.theme-scifi .ring { background: linear-gradient(140deg, var(--accent), var(--violet)); }
+
+/* Display font is used for headings and big numbers in all new themes. */
+.theme-magitech h1, .theme-magitech h2, .theme-magitech h3, .theme-magitech .metric-value,
+.theme-steampunk h1, .theme-steampunk h2, .theme-steampunk h3, .theme-steampunk .metric-value,
+.theme-fantasy h1, .theme-fantasy h2, .theme-fantasy h3, .theme-fantasy .metric-value,
+.theme-cyberpunk h1, .theme-cyberpunk h2, .theme-cyberpunk h3, .theme-cyberpunk .metric-value,
+.theme-scifi h1, .theme-scifi h2, .theme-scifi h3, .theme-scifi .metric-value {
+  font-family: var(--display-font, var(--font));
+}
+
+/* Reduced motion: drop all decorative transforms across new themes. */
+@media (prefers-reduced-motion: reduce) {
+  .cel-modern.theme-magitech *, .cel-modern.theme-steampunk *,
+  .cel-modern.theme-fantasy *, .cel-modern.theme-cyberpunk *,
+  .cel-modern.theme-scifi * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+
+/* ---- Theme emblem in the header (next to the company name) ---- */
+.cel-modern .theme-emblem {
+  display: inline-block;
+  width: 42px; height: 42px;
+  border-radius: 10px;
+  margin-right: 10px;
+  vertical-align: middle;
+  background: var(--soft) center / cover no-repeat;
+  border: 1px solid var(--border);
+}
+.cel-modern.theme-magitech  .theme-emblem { background-image: url("../assets/themes/magitech-hero.jpg");  border-radius: 50%; }
+.cel-modern.theme-steampunk .theme-emblem { background-image: url("../assets/themes/steampunk-hero.jpg"); border-radius: 4px; }
+.cel-modern.theme-fantasy   .theme-emblem { background-image: url("../assets/themes/fantasy-hero.jpg");   border-radius: 50%; }
+.cel-modern.theme-cyberpunk  .theme-emblem { background-image: url("../assets/themes/cyberpunk-hero.jpg");  border-radius: 0; }
+.cel-modern.theme-scifi     .theme-emblem { background-image: url("../assets/themes/scifi-hero.jpg");     border-radius: 4px; }
+
+
+/* ---- Per-theme accent animations ---- */
+
+/* MAGITECH: soft arcane pulse */
+@keyframes celMagiPulse {
+  0%   { box-shadow:0 0 0 0 rgba(167,139,250,.30); }
+  50%  { box-shadow:0 0 14px 2px rgba(167,139,250,.22); }
+  100% { box-shadow:0 0 0 0 rgba(167,139,250,.30); }
+}
+.theme-magitech .primary, .theme-magitech .cel-big { animation:celMagiPulse 2.4s ease-in-out infinite; }
+.theme-magitech .theme-emblem { animation:celMagiPulse 3s ease-in-out infinite; }
+
+/* STEAMPUNK: gentle gear-turn */
+@keyframes celGearSpin {
+  from { transform:rotate(0deg); }
+  to   { transform:rotate(360deg); }
+}
+.theme-steampunk .theme-emblem {
+  background-image:url("../assets/themes/steampunk-hero.jpg");
+  overflow:hidden; position:relative;
+}
+.theme-steampunk .theme-emblem::after {
+  content:""; position:absolute; inset:0;
+  border-radius:inherit;
+  background:url("../assets/themes/steampunk-hero.jpg") center / cover;
+  animation:celGearSpin 18s linear infinite;
+  opacity:0; /* keep it subtle: just a shimmer */
+}
+.theme-steampunk .seat:hover .theme-emblem,
+.theme-steampunk .cel-card:hover .theme-emblem { animation:celGearSpin 1.4s linear infinite; }
+
+/* FANTASY: candle flicker on the primary button */
+@keyframes celCandleFlicker {
+  0%   { filter:brightness(1); }
+  25%  { filter:brightness(1.04); }
+  50%  { filter:brightness(.98); }
+  75%  { filter:brightness(1.03); }
+  100% { filter:brightness(1); }
+}
+.theme-fantasy .primary, .theme-fantasy .cel-big { animation:celCandleFlicker 3.2s ease-in-out infinite; }
+
+/* CYBERPUNK: glitch on hover */
+@keyframes celGlitch {
+  0%   { transform:translate(0,0); }
+  20%  { transform:translate(-2px,1px); }
+  40%  { transform:translate(2px,-1px); }
+  60%  { transform:translate(-1px,-1px); }
+  80%  { transform:translate(1px,1px); }
+  100% { transform:translate(0,0); }
+}
+.theme-cyberpunk button:hover { animation:celGlitch .18s steps(2) 1; }
+.theme-cyberpunk .primary, .theme-cyberpunk .cel-big { text-shadow:0 0 8px rgba(247,231,90,.45); }
+
+/* SCI-FI: soft holographic shimmer on cards */
+@keyframes celHoloShimmer {
+  0%   { background-position:-200% 0; }
+  100% { background-position:200% 0; }
+}
+.theme-scifi .cel-card::after,
+.theme-scifi .route::after,
+.theme-scifi .contract::after {
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(115deg,transparent 30%,rgba(79,195,247,.06) 50%,transparent 70%);
+  background-size:200% 100%;
+  animation:celHoloShimmer 3.5s linear infinite;
+}
+
+/* Reduced motion overrides for theme animations */
+@media (prefers-reduced-motion: reduce) {
+  .theme-magitech .primary, .theme-magitech .cel-big, .theme-magitech .theme-emblem,
+  .theme-steampunk .theme-emblem,
+  .theme-fantasy .primary, .theme-fantasy .cel-big,
+  .theme-cyberpunk button, .theme-scifi .cel-card::after,
+  .theme-scifi .route::after, .theme-scifi .contract::after {
+    animation:none !important;
+  }
+}

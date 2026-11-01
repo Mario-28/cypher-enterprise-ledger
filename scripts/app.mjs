@@ -101,6 +101,7 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     try { banner = game.settings.get(MID, "banner") || ""; } catch (e) { /* not registered yet */ }
     let theme = "walnut";
     try { theme = game.settings.get(MID, "theme") || "walnut"; } catch (e) { /* not registered */ }
+    if (!["walnut","verdigris","noir","magitech","steampunk","fantasy","cyberpunk","scifi"].includes(theme)) theme = "walnut";
     const events = s.events.map(e => {
       const impact = eventImpact(e, s);
       return { ...e, impact, internal: e.kind === "internal", target: threatTN(e, s),
@@ -260,6 +261,7 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
     let theme = "walnut";
     try { theme = game.settings.get(MID, "theme") || "walnut"; } catch (e) { /* not registered */ }
+    if (!["walnut","verdigris","noir","magitech","steampunk","fantasy","cyberpunk","scifi"].includes(theme)) theme = "walnut";
     for (const c of [...el.classList]) if (c.startsWith("theme-")) el.classList.remove(c);
     el.classList.add(`theme-${theme}`);
     const animate = this._animTab !== this.tab || this._pulse;
@@ -1195,6 +1197,11 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
             <option value="walnut" ${cur.theme === "walnut" ? "selected" : ""}>Graphite / Aurora</option>
             <option value="verdigris" ${cur.theme === "verdigris" ? "selected" : ""}>Deep Ocean</option>
             <option value="noir" ${cur.theme === "noir" ? "selected" : ""}>Obsidian / Violet</option>
+            <option value="magitech" ${cur.theme === "magitech" ? "selected" : ""}>Magitech</option>
+            <option value="steampunk" ${cur.theme === "steampunk" ? "selected" : ""}>Steampunk</option>
+            <option value="fantasy" ${cur.theme === "fantasy" ? "selected" : ""}>Fantasy</option>
+            <option value="cyberpunk" ${cur.theme === "cyberpunk" ? "selected" : ""}>Cyberpunk</option>
+            <option value="scifi" ${cur.theme === "scifi" ? "selected" : ""}>Sci-Fi</option>
           </select></div>
         <div class="form-group"><label>Screen effects</label><input type="checkbox" name="fx" ${cur.fx ? "checked" : ""}></div>
         <div class="form-group"><label>Sound</label><input type="checkbox" name="sound" ${cur.sound ? "checked" : ""}></div>
