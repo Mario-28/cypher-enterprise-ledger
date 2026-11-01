@@ -7,6 +7,7 @@ export const DEFAULT_STATE = () => ({
   staff: [], places: [], history: [], events: [], tasks: [], routes: [], market: {},
   contracts: [], contractLog: [], reputation: 20,
   rivals: [], ops: [], guards: [], heat: 0, spyLog: [],
+  pcs: [], week: 1, weekLog: [], momentum: { production: 0, trade: 0 },
   divisions: [], dealLog: [],
   branches: [], branchTithe: 20, dividendRate: 10,
   exec: { treasurer: "", quartermaster: "", spymaster: "", engineer: "", envoy: "" },
@@ -39,6 +40,11 @@ export function migrateState(s) {
   s.ops = s.ops.filter(o => rivalIds.has(o.rivalId));
   s.ops.forEach(o => { o.crew = (o.crew ?? []).filter(id => ids.has(id)); if (!OP_KINDS[o.kind]) o.kind = "surveil"; });
   s.guards = s.guards.filter(id => ids.has(id));
+  if (!Array.isArray(s.pcs)) s.pcs = [];
+  if (!Array.isArray(s.weekLog)) s.weekLog = [];
+  s.week = Math.max(1, num(s.week, 1));
+  s.momentum ??= {}; s.momentum.production = clamp(num(s.momentum.production, 0), 0, 3); s.momentum.trade = clamp(num(s.momentum.trade, 0), 0, 3);
+  s.pcs.forEach(p => { if (!PC_ROLES[p.role]) p.role = "agent"; p.adj = clamp(num(p.adj, 0), -2, 2); if (!PC_TASKS[p.task]) p.task = "rest"; });
   s.contracts.forEach(c => { c.crew = (c.crew ?? []).filter(id => ids.has(id)); c.progress = Math.max(0, num(c.progress, 0)); });
   s.routes.forEach(r => { if (r.master && !ids.has(r.master)) r.master = ""; if (!GOODS[r.good]) r.good = "textiles"; if (!MODES[r.mode]) r.mode = "wagon"; });
   s.exec ??= {}; s.perks ??= {};
@@ -224,6 +230,93 @@ export const TASKS = {
   venture: { label: "Run a Local Venture", desc: "Gamble on your branch: +50 × tier income this month on success.", needs: "branch" }
 };
 export const taskTarget = level => Math.min(18, 3 * (Math.ceil(level / 2) + 1));
+
+// ── PC duty: player-character roles & weekly tasks ─────────────────────────
+// PCs are linked by drag-drop (Actor uuid). A PC holds a role (gives +1 on matching
+// task domains) and is assigned one weekly task. Closing the week rolls d20 +
+// role/skill/tuning bonus vs the task TN; effects feed the monthly economy via
+// momentum tokens (production/trade) or immediate changes (morale, heat, progress, intel).
+export const PC_ROLES = {
+  foreman:   { label: "Foreman of Works", icon: "🔧", domains: ["production", "workers"] },
+  broker:    { label: "Trade Broker",     icon: "⚖", domains: ["trade"] },
+  warden:    { label: "Chief Warden",     icon: "🛡", domains: ["security", "workers"] },
+  spymaster: { label: "Spymaster",        icon: "🕵", domains: ["espionage"] },
+  envoy:     { label: "Envoy",            icon: "🎩", domains: ["contracts", "trade"] },
+  agent:     { label: "Free Agent",       icon: "🎲", domains: [] }
+};
+
+export const PC_TASKS = {
+  rest:       { label: "Rest / Lay Low",   icon: "🛋", tn: 0,  skills: [],                                                            desc: "No duty this week." },
+  production: { label: "Boost Production", icon: "⚙", tn: 12, skills: ["craft", "smith", "machin", "engineer", "build", "repair"],   desc: "+1 production token: +10 income next month." },
+  workers:    { label: "Care for the Crew",icon: "🍲", tn: 10, skills: ["heal", "persuad", "cook", "lead", "comfort"],               desc: "Cure an injured worker, else crew morale +4." },
+  trade:      { label: "Ride the Trade",   icon: "🚂", tn: 12, skills: ["persuad", "decept", "bargain", "barter", "navigat"],         desc: "+1 trade token: +1 on each route roll next month." },
+  security:   { label: "Patrol & Watch",   icon: "🛡", tn: 12, skills: ["percept", "stealth", "combat", "track", "guard"],            desc: "Heat −5." },
+  contracts:  { label: "Push Contracts",   icon: "📜", tn: 12, skills: ["persuad", "decept", "negotiat", "intellect"],                desc: "+1 progress on the least-advanced active contract." },
+  espionage:  { label: "Dirty Work",       icon: "🕵", tn: 14, skills: ["stealth", "decept", "lockpick", "investigat", "intrud"],     desc: "+5 intel on the most shadowy rival." }
+};
+
+export const pcRoleChoices = () => Object.fromEntries(Object.entries(PC_ROLES).map(([k, v]) => [k, `${v.icon} ${v.label}`]));
+export const pcTaskChoices = () => Object.fromEntries(Object.entries(PC_TASKS).map(([k, v]) => [k, v.tn ? `${v.icon} ${v.label} (TN ${v.tn})` : `${v.icon} ${v.label}`]));
+
+// Best matching skill level (−1..+2) on the PC's Cypher sheet for this task kind.
+export function pcSkillLevel(actor, kind) {
+  const names = PC_TASKS[kind]?.skills ?? [];
+  if (!actor?.items || !names.length) return 0;
+  const MAP = { inability: -1, untrained: 0, trained: 1, specialized: 2 };
+  let best = 0;
+  for (const it of actor.items) {
+    if (it.type !== "skill") continue;
+    const n = String(it.name ?? "").toLowerCase();
+    if (!names.some(s => n.includes(s))) continue;
+    const raw = it.system?.skillLevel ?? it.system?.level ?? 0;
+    const lv = typeof raw === "string" ? (MAP[raw.toLowerCase()] ?? 0) : Number(raw) || 0;
+    best = Math.max(best, clamp(Math.round(lv), -1, 2));
+  }
+  return best;
+}
+
+// Role match (+1) + sheet skill (−1..+2) + manual tuning (−2..+2).
+export function pcTaskBonus(pc, actor, kind) {
+  const rb = PC_ROLES[pc.role]?.domains?.includes(kind) ? 1 : 0;
+  return rb + pcSkillLevel(actor, kind) + clamp(Number(pc.adj) || 0, -2, 2);
+}
+
+// Apply a successful weekly task. mult = 2 on a critical. Returns a log detail string.
+export function applyPcTask(s, kind, mult = 1) {
+  s.momentum ??= { production: 0, trade: 0 };
+  switch (kind) {
+    case "production":
+      s.momentum.production = clamp(s.momentum.production + mult, 0, 3);
+      return `+${mult} production token${mult > 1 ? "s" : ""} (+${10 * mult} income next month)`;
+    case "trade":
+      s.momentum.trade = clamp(s.momentum.trade + mult, 0, 3);
+      return `+${1 * mult} trade token${mult > 1 ? "s" : ""} (+${mult} on each route next month)`;
+    case "workers": {
+      const hurt = s.staff.find(p => p.injured);
+      if (hurt) { hurt.injured = false; hurt.happiness = clamp(hurt.happiness + 6, 0, 100); return `${hurt.name} recovers from injury`; }
+      s.staff.forEach(p => p.happiness = clamp(p.happiness + 4 * mult, 0, 100));
+      return `crew morale +${4 * mult}`;
+    }
+    case "security":
+      s.heat = clamp(s.heat - 5 * mult, 0, 100);
+      return `heat −${5 * mult} (now ${s.heat})`;
+    case "contracts": {
+      const act = s.contracts.filter(c => c.status === "active");
+      if (!act.length) return "no active contracts — goodwill banked";
+      act.sort((a, b) => a.progress / a.required - b.progress / b.required);
+      const c = act[0];
+      c.progress = Math.min(c.required, c.progress + 1 * mult);
+      return `📜 ${c.title} +${mult} progress (${c.progress}/${c.required})`;
+    }
+    case "espionage": {
+      if (!s.rivals.length) return "no rivals — the agents idle";
+      const r = [...s.rivals].sort((a, b) => a.intel - b.intel)[0];
+      r.intel = clamp(r.intel + 5 * mult, 0, 100);
+      return `🕵 ${r.name} intel +${5 * mult} (${r.intel}${r.intel >= INTEL_PLAN ? ", plan known" : ""})`;
+    }
+  }
+  return "";
+}
 export const eventImpact = (e, s = null) => {
   const v = (Number(e.inc) || 0) * (Number(e.level) || 1);
   return s && v < 0 ? Math.round(v * perkFx(s).threatDmg) : v;
@@ -508,9 +601,10 @@ export function forecast(s, routeRes = null, conRes = null, spyRes = null, brRes
   const divInc = dv.reduce((n, d) => n + d.income, 0), divCost = dv.reduce((n, d) => n + d.upkeep, 0), divMor = dv.reduce((n, d) => n + d.mor, 0);
   const branchInc = brRes ? brRes.income : (s.branches ?? []).reduce((n, b) => n + branchCalc(b, s).tithe, 0);
   const interest = fx.interest ? Math.min(100, Math.round(Math.max(0, s.cash) * fx.interest)) : 0;
-  const income = base + bonus + evInc + taskInc + routeRev + conInc + interest + spyInc + divInc + branchInc - drag;
+  const momInc = (s.momentum?.production ?? 0) * 10;
+  const income = base + bonus + momInc + evInc + taskInc + routeRev + conInc + interest + spyInc + divInc + branchInc - drag;
   const costs = wages + upkeep + routeSpend + conCost + fx.salaries + spyCost + divCost;
-  return { income, costs, profit: income - costs, evInc, evMor, taskInc, taskMor, placeMor, routeRev, routeSpend, routeNet: routeRev - routeSpend,
+  return { income, costs, profit: income - costs, momInc, evInc, evMor, taskInc, taskMor, placeMor, routeRev, routeSpend, routeNet: routeRev - routeSpend,
     conInc, conCost, conNet: conInc - conCost, interest, salaries: fx.salaries, perkMor: fx.moraleFlat, drag, spyInc, spyCost, spyNet: spyInc - spyCost,
     divInc, divCost, divNet: divInc - divCost, divMor, branchInc };
 }

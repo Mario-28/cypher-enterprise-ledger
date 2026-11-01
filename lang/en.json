@@ -10,5 +10,12 @@
   "CEL.SetDebug": "Ledger: debug logging",
   "CEL.SetDebugHint": "Log each month-close step to the browser console (F12). Useful when reporting a bug.",
   "CEL.SetBanner": "Ledger: header banner image",
-  "CEL.SetBannerHint": "Optional wide image shown behind the ledger title for everyone. Leave empty for the built-in wood and brass look."
+  "CEL.SetBannerHint": "Optional wide image shown behind the ledger title for everyone. Leave empty for the built-in wood and brass look.",
+  "CEL.SetTheme": "Ledger: template",
+  "CEL.SetThemeHint": "Visual template for the ledger window: colorway, wood, metals and glows.",
+  "CEL.ThemeWalnut": "Steampunk Walnut (default)",
+  "CEL.ThemeVerdigris": "Verdigris Patina",
+  "CEL.ThemeNoir": "Ink & Silver",
+  "CEL.SetTpl": "Ledger: custom template path",
+  "CEL.SetTplHint": "Advanced: path to a replacement Handlebars template (e.g. modules/my-module/ledger-custom.hbs). Copy templates/ledger.hbs from this module as a starting point. Leave empty for the built-in template."
 }

@@ -76,9 +76,8 @@ export async function runSelfTest(App) {
   });
 
   // ---- Assets ----
-  for (const f of ["coin.png", "spark.png", "coin.wav", "thud.wav", "fanfare.wav", "ui/wood.jpg", "ui/parchment.jpg", "ui/brass.jpg"]) {
-    await step("Assets", f, async () => { const r = await fetch(`modules/${MID}/assets/${f}`, { method: "HEAD" }); if (!r.ok) throw new Error(`HTTP ${r.status}`); });
-  }
+  await step("Assets", "code-only build", () =>
+    "v1.7: UI + FX ship zero binary assets — textures are CSS gradients, crest/gears are inline SVG, particle sprites are canvas-drawn, audio is WebAudio-synthesized");
   await step("Assets", "stylesheet loaded", () => {
     const ok = [...document.styleSheets].some(ss => { try { return ss.href?.includes(MID); } catch (e) { return false; } });
     return ok ? "" : "WARN: the module stylesheet was not found on the page";

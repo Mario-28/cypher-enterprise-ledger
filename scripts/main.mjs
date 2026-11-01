@@ -12,6 +12,15 @@ Hooks.once("init", () => {
     name: "CEL.SetBanner", hint: "CEL.SetBannerHint", scope: "world", config: true, type: String, default: "", filePicker: "image",
     onChange: () => LedgerApp.instance?.render()
   });
+  game.settings.register(MID, "theme", {
+    name: "CEL.SetTheme", hint: "CEL.SetThemeHint", scope: "world", config: true, type: String, default: "walnut",
+    choices: { walnut: "CEL.ThemeWalnut", verdigris: "CEL.ThemeVerdigris", noir: "CEL.ThemeNoir" },
+    onChange: () => LedgerApp.instance?.render()
+  });
+  game.settings.register(MID, "tpl", {
+    name: "CEL.SetTpl", hint: "CEL.SetTplHint", scope: "world", config: true, type: String, default: "",
+    onChange: () => LedgerApp.instance?.render()
+  });
   game.settings.register(MID, "fx", { name: "CEL.SetFx", hint: "CEL.SetFxHint", scope: "client", config: true, type: Boolean, default: true });
   game.settings.register(MID, "sound", { name: "CEL.SetSound", hint: "CEL.SetSoundHint", scope: "client", config: true, type: Boolean, default: true });
   game.settings.register(MID, "volume", {
@@ -38,10 +47,19 @@ Hooks.once("ready", () => {
 Hooks.on("createChatMessage", msg => playFx(msg.flags?.[MID]));
 
 Hooks.on("getSceneControlButtons", controls => {
-  const group = controls.tokens ?? Object.values(controls)[0];
-  if (!group?.tools) return;
-  group.tools.celLedger = {
-    name: "celLedger", title: "CEL.Open", icon: "fa-solid fa-gears",
-    order: 99, button: true, visible: true, onChange: () => LedgerApp.toggle()
+  // Official v14 shape: Record keyed by control name; token group is "tokens" (plural),
+  // tools object-keyed. Older builds: array of groups / singular "token".
+  const tool = { name: "celLedger", title: "CEL.Open", icon: "fa-solid fa-gears",
+    order: 99, button: true, visible: true, onClick: () => LedgerApp.toggle(), onChange: () => LedgerApp.toggle() };
+  const add = g => {
+    if (!g) return false;
+    if (Array.isArray(g.tools)) g.tools.push(tool);
+    else (g.tools ??= {})[tool.name] = tool;
+    return true;
   };
+  if (add(controls?.tokens ?? controls?.token)) return;
+  const list = Array.isArray(controls) ? controls
+    : controls instanceof Map ? [...controls.values()]
+    : Object.values(controls ?? {});
+  add(list.find(g => g?.name === "tokens" || g?.name === "token") ?? list[0]);
 });

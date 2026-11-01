@@ -6,14 +6,31 @@ import { MID, SCHEMA, DEFAULT_STATE, migrateState, getState, saveState, clamp, u
   SEATS, SEAT_DEFS, PERK_COSTS, salaryPer, DORMANT_BELOW, execOf, seatActive, perkTier, perkFx, perkPoints, threatTN,
   OP_KINDS, RIVAL_ACTIONS, opKindChoices, INTEL_PLAN, GUARD_VALUE, makeRival, rivalDrag, defenseRating, opCalc,
   DEAL_KINDS, premiumChoices, dealCalc, makeDivision, divisionCalc,
-  BRANCH_FOCI, BRANCH_STANCES, BRANCH_RATES, branchFocusChoices, HIRE_COST, DIVIDEND_FLOOR, branchTN, branchTierCap, dividendGold, makeBranch, branchCalc, branchOp, branchMonth } from "./data.mjs";
+  BRANCH_FOCI, BRANCH_STANCES, BRANCH_RATES, branchFocusChoices, HIRE_COST, DIVIDEND_FLOOR, branchTN, branchTierCap, dividendGold, makeBranch, branchCalc, branchOp, branchMonth,
+  PC_TASKS, PC_ROLES, pcTaskChoices, pcRoleChoices, pcTaskBonus, applyPcTask } from "./data.mjs";
 import { dbg, runSelfTest, reportHtml } from "./diag.mjs";
+import { playSound } from "./fx.mjs";
 const { ApplicationV2, HandlebarsApplicationMixin, DialogV2 } = foundry.applications.api;
 
 export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static instance = null;
   tab = "overview";
   _animTab = null;
+  _pulse = false; // set before a same-tab render that should replay entry animations (e.g. month close)
+  _prevCounts = null; // last counted values per data-ck key, so count-ups run from the old value
+
+  /** Slam a wax-stamp overlay onto the ledger window, then fade it out. */
+  stamp(html, cls = "") {
+    const el = this.element;
+    if (!el) return;
+    const d = document.createElement("div");
+    d.className = "cel-stamp-overlay";
+    d.innerHTML = `<div class="cel-stamp ${cls}"><span class="cel-stamp-txt">${html}</span></div>`;
+    el.appendChild(d);
+    playSound("thud.wav");
+    setTimeout(() => d.classList.add("out"), 1500);
+    setTimeout(() => d.remove(), 2200);
+  }
 
   static DEFAULT_OPTIONS = {
     id: "cel-ledger", classes: ["cel-app"], tag: "div",
@@ -28,16 +45,22 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       celRemoveFloor: LedgerApp.onRemoveFloor, celVisitFloor: LedgerApp.onVisitFloor,
       celAddRoute: LedgerApp.onAddRoute,
       celAcceptContract: LedgerApp.onAcceptContract, celUnassign: LedgerApp.onUnassign,
+      celResolveWeek: LedgerApp.onResolveWeek,
       celRollOffer: LedgerApp.onRollOffer, celCustomContract: LedgerApp.onCustomContract,
       celBuyPerk: LedgerApp.onBuyPerk, celRespec: LedgerApp.onRespec,
       celAddRival: LedgerApp.onAddRival, celAddOp: LedgerApp.onAddOp, celOpUnassign: LedgerApp.onOpUnassign, celUnguard: LedgerApp.onUnguard,
       celDeal: LedgerApp.onDeal, celDivest: LedgerApp.onDivest,
       celSelfTest: LedgerApp.onSelfTest, celExport: LedgerApp.onExport, celImport: LedgerApp.onImport, celReset: LedgerApp.onReset,
+      celSettings: LedgerApp.onSettings,
       celAddBranch: LedgerApp.onAddBranch, celBranchStance: LedgerApp.onBranchStance, celBranchHire: LedgerApp.onBranchHire,
       celBranchUpgrade: LedgerApp.onBranchUpgrade, celBranchDividend: LedgerApp.onBranchDividend
     }
   };
-  static PARTS = { main: { template: `modules/${MID}/templates/ledger.hbs` } };
+  static get PARTS() {
+    let tpl = "";
+    try { tpl = (game.settings.get(MID, "tpl") || "").trim(); } catch (e) { /* not registered yet */ }
+    return { main: { template: tpl || `modules/${MID}/templates/ledger.hbs` } };
+  }
 
   static open() { LedgerApp.instance ??= new LedgerApp(); LedgerApp.instance.render({ force: true }); }
   static toggle() { const a = LedgerApp.instance; if (a?.rendered) a.close(); else LedgerApp.open(); }
@@ -71,6 +94,8 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const avg = avgMorale(s);
     let banner = "";
     try { banner = game.settings.get(MID, "banner") || ""; } catch (e) { /* not registered yet */ }
+    let theme = "walnut";
+    try { theme = game.settings.get(MID, "theme") || "walnut"; } catch (e) { /* not registered yet */ }
     const events = s.events.map(e => {
       const impact = eventImpact(e, s);
       return { ...e, impact, internal: e.kind === "internal", target: threatTN(e, s),
@@ -164,12 +189,21 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         growthPct: Math.min(100, Math.round(b.growth / c.need * 100)), lastProfit: last?.profit ?? null, lastTithe: last?.tithe ?? null,
         stances: Object.entries(BRANCH_STANCES).map(([k, v]) => ({ key: k, label: v.label, icon: v.icon, desc: v.desc, on: b.stance === k })) };
     });
+    const pcs = s.pcs.map(pc => {
+      const role = PC_ROLES[pc.role] ?? PC_ROLES.agent, t = PC_TASKS[pc.task] ?? PC_TASKS.rest;
+      return { ...pc, roleLabel: role.label, roleIcon: role.icon, taskLabel: t.label, taskIcon: t.icon, taskTn: t.tn, taskDesc: t.desc,
+        domains: role.domains.map(d => PC_TASKS[d].label) };
+    });
     return {
-      isGM, state: s, f, staff, places, events, avg, avgMood: mood(avg), banner, gauges: LedgerApp.makeGauges(f, avg),
+      isGM, state: s, f, staff, places, events, avg, avgMood: mood(avg), banner, theme, gauges: LedgerApp.makeGauges(f, avg),
       version: game.modules?.get(MID)?.version ?? "", schema: s.schema,
       floorTypes: floorTypeChoices(), goodChoices: goodChoices(), modeChoices: modeChoices(), specChoices: specChoices(),
       opKindChoices: opKindChoices(), premiumChoices: premiumChoices(), branchFocusChoices: branchFocusChoices(),
       crewChoices: Object.fromEntries([["", "— none —"], ...s.staff.map(p => [p.id, p.name])]),
+      pcs, week: s.week, weekLog: [...(s.weekLog ?? [])].reverse(),
+      pcRoleChoices: pcRoleChoices(), pcTaskChoices: pcTaskChoices(),
+      taskCatalog: Object.entries(PC_TASKS).filter(([k]) => k !== "rest").map(([k, v]) => ({ key: k, icon: v.icon, label: v.label, tn: v.tn, desc: v.desc })),
+      momentum: s.momentum, momIncome: (s.momentum?.production ?? 0) * 10,
       routes, market, runningRoutes: routes.filter(r => r.running).length, routeCap: routeCap(s), cargoCap: cargoCap(s),
       contracts, activeContracts: active, offers: contracts.filter(c => c.isOffered), contractLog: [...s.contractLog].reverse(),
       activeCount: active.length, contractCap: contractCap(s), reputation: s.reputation, repTier: repTier(s.reputation),
@@ -186,7 +220,7 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       threats: events.filter(e => e.threat).length,
       tabs: { overview: tab === "overview", staff: tab === "staff", places: tab === "places",
         events: tab === "events", tasks: tab === "tasks", trophies: tab === "trophies", routes: tab === "routes",
-        contracts: tab === "contracts", execs: tab === "execs", spies: tab === "spies", deals: tab === "deals", branches: tab === "branches" },
+        contracts: tab === "contracts", execs: tab === "execs", spies: tab === "spies", deals: tab === "deals", branches: tab === "branches", duty: tab === "duty" },
       graph: LedgerApp.makeGraph(s.history), history: [...s.history].reverse().slice(0, 12),
       tasks: s.tasks, tn: taskTarget(s.level), canAct: !s.tasks.some(t => t.userId === userId),
       taskDefs: Object.entries(TASKS).map(([key, v]) => ({ key, label: v.label, desc: v.desc, needs: v.needs })),
@@ -207,7 +241,7 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const min = Math.min(0, ...vals), max = Math.max(1, ...vals), span = max - min || 1;
     const pts = h.map((x, i) => [P + i * (W - 2 * P) / (h.length - 1), H - P - (x.profit - min) / span * (H - 2 * P)]);
     const zero = H - P - (0 - min) / span * (H - 2 * P);
-    return { W, H, zero, line: pts.map(p => p.join(",")).join(" "), pts: pts.map(([x, y]) => ({ x, y })) };
+    return { W, H, zero, line: pts.map(p => p.join(",")).join(" "), pts: pts.map(([x, y], i) => ({ x, y, m: "M" + h[i].month })) };
   }
 
   _onRender() {
@@ -218,19 +252,32 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       z.addEventListener("dragleave", () => z.classList.remove("hot"));
       z.addEventListener("drop", ev => { z.classList.remove("hot"); this.onDrop(ev, z.dataset.kind, z.dataset.target, z.dataset.id); });
     });
-    if (this._animTab !== this.tab) {
-      this._animTab = this.tab;
-      if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        el.querySelectorAll("[data-count]").forEach(n => {
-          const to = Number(n.dataset.count) || 0, t0 = performance.now();
-          const step = t => {
-            const k = Math.min(1, (t - t0) / 900);
-            n.textContent = Math.round(to * (1 - Math.pow(1 - k, 3)));
-            if (k < 1) requestAnimationFrame(step);
-          };
-          requestAnimationFrame(step);
-        });
-      }
+    // Theme colorway lives on the window element so it reaches the title bar and window backdrop too.
+    let theme = "walnut";
+    try { theme = game.settings.get(MID, "theme") || "walnut"; } catch (e) { /* not registered yet */ }
+    for (const c of [...el.classList]) if (c.startsWith("theme-")) el.classList.remove(c);
+    el.classList.add(`theme-${theme}`);
+    // Entry animations play on tab switch, and on same-tab re-renders flagged via _pulse (month close).
+    const animate = this._animTab !== this.tab || this._pulse;
+    this._animTab = this.tab;
+    this._pulse = false;
+    if (!animate) return;
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      el.querySelector(".gauges")?.classList.add("anim-in");
+      this._prevCounts ??= {};
+      el.querySelectorAll("[data-count]").forEach(n => {
+        const to = Number(n.dataset.count) || 0, key = n.dataset.ck || n.textContent;
+        const from = Number(this._prevCounts[key]) || 0;
+        this._prevCounts[key] = to;
+        const t0 = performance.now(), dur = 950;
+        const step = t => {
+          const k = Math.min(1, (t - t0) / dur);
+          const v = Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3)));
+          if (n instanceof HTMLInputElement) n.value = v; else n.textContent = v;
+          if (k < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      });
     }
   }
 
@@ -260,6 +307,13 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     if (edit === "guard") {
       if (i.value && s.guards.length < 3 && !busyCrew(s).has(i.value)) s.guards.push(i.value);
+      return LedgerApp.commit(s);
+    }
+    if (edit === "ops") {
+      const o = s.ops.find(x => x.id === id);
+      if (!o) return;
+      if (field === "kind") { if (OP_KINDS[i.value]) o.kind = i.value; }
+      else if (field === "active") o.active = i.checked;
       return LedgerApp.commit(s);
     }
     if (edit === "exec") {
@@ -324,6 +378,10 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!b) return;
       b.sceneUuid = doc.uuid;
       if (b.name === "Branch Office") b.name = doc.name;
+      return LedgerApp.commit(s);
+    }
+    if (kind === "Actor" && target === "pc") {
+      if (!s.pcs.some(p => p.uuid === doc.uuid)) s.pcs.push({ id: uid(), uuid: doc.uuid, name: doc.name, img: doc.img, role: "agent", adj: 0, task: "rest" });
       return LedgerApp.commit(s);
     }
     if (kind === "Actor" && target === "contract") {
@@ -784,6 +842,40 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   // ---- Trade routes ----
+  static async onResolveWeek() {
+    if (!game.user.isGM) return;
+    const s = getState();
+    const week = s.week;
+    const actors = new Map();
+    for (const pc of s.pcs) { const a = await fromUuid(pc.uuid).catch(() => null); if (a) actors.set(pc.id, a); }
+    const entries = [], lines = [];
+    for (const pc of s.pcs) {
+      const kind = pc.task ?? "rest", t = PC_TASKS[kind];
+      if (!t || kind === "rest") continue;
+      const bonus = pcTaskBonus(pc, actors.get(pc.id), kind);
+      const nat = (await new Roll("1d20").evaluate()).total;
+      let outcome, mult = 1, detail = "";
+      if (nat === 20) outcome = "CRITICAL";
+      else if (nat === 1) outcome = "COMPLICATION";
+      else outcome = nat + bonus >= t.tn ? "SUCCESS" : "FAIL";
+      if (outcome === "COMPLICATION") { s.heat = clamp(s.heat + 2, 0, 100); detail = "heat +2 — it went sideways"; }
+      else if (outcome !== "FAIL") { if (outcome === "CRITICAL") mult = 2; detail = applyPcTask(s, kind, mult); }
+      const e = { wk: week, icon: t.icon, name: pc.name, task: t.label, nat, bonus, total: nat + bonus, tn: t.tn, outcome, detail };
+      entries.push(e);
+      lines.push(`<li>${t.icon} <b>${pc.name}</b> — ${t.label}: d20 ${nat}${bonus ? ` (+${bonus} = ${nat + bonus})` : ""} vs TN ${t.tn} — <b>${outcome}</b>${detail ? ` · ${detail}` : ""}</li>`);
+    }
+    if (!entries.length) { ui.notifications.info("CEL: no PC duties assigned this week."); return; }
+    s.week = week + 1;
+    s.weekLog.push(...entries);
+    while (s.weekLog.length > 14) s.weekLog.shift();
+    await LedgerApp.commit(s);
+    dbg("week closed", { week, entries: entries.length });
+    await ChatMessage.create({
+      content: `<div class="cel-chat"><h3>🗓 Weekly Duty — Week ${week}</h3><ul class="routes">${lines.join("")}</ul><p class="muted">Next week: ${s.week}. Production/trade tokens last until the month closes.</p></div>`,
+      flags: { [MID]: entries.some(e => e.outcome === "CRITICAL") ? { fx: "coins" } : entries.some(e => e.outcome === "COMPLICATION") ? { fx: "shake", power: 3 } : {} }
+    });
+  }
+
   static async onAddRoute() {
     if (!game.user.isGM) return;
     const s = getState();
@@ -799,7 +891,7 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const c = routeCalc(r, s);
       if (!c.running) continue;
       const roll = await new Roll("1d20").evaluate();
-      const nat = roll.total, total = nat + c.bonus;
+      const nat = roll.total, total = nat + c.bonus + (s.momentum?.trade ?? 0);
       let outcome, revenue;
       if (nat === 1 && fx.ambushImmune) {
         outcome = "setback"; revenue = c.salvage;
@@ -1087,6 +1179,50 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
+  static async onSettings() {
+    const isGM = game.user.isGM;
+    const cur = {
+      theme: game.settings.get(MID, "theme"), fx: game.settings.get(MID, "fx"), sound: game.settings.get(MID, "sound"),
+      volume: game.settings.get(MID, "volume"), banner: game.settings.get(MID, "banner"), tpl: game.settings.get(MID, "tpl")
+    };
+    const content = `
+      <form class="standard-form">
+        <div class="form-group"><label>Template</label>
+          <select name="theme" ${isGM ? "" : "disabled"}>
+            <option value="walnut" ${cur.theme === "walnut" ? "selected" : ""}>Steampunk Walnut</option>
+            <option value="verdigris" ${cur.theme === "verdigris" ? "selected" : ""}>Verdigris Patina</option>
+            <option value="noir" ${cur.theme === "noir" ? "selected" : ""}>Ink &amp; Silver</option>
+          </select></div>
+        <div class="form-group"><label>Screen effects</label><input type="checkbox" name="fx" ${cur.fx ? "checked" : ""}></div>
+        <div class="form-group"><label>Sound</label><input type="checkbox" name="sound" ${cur.sound ? "checked" : ""}></div>
+        <div class="form-group"><label>Volume</label><input type="range" name="volume" min="0" max="1" step="0.05" value="${cur.volume}"></div>
+        <div class="form-group"><label>Header banner image</label><input type="text" name="banner" value="${cur.banner ?? ""}" placeholder="path/to/image.jpg (GM)" ${isGM ? "" : "disabled"}></div>
+        <div class="form-group"><label>Custom template (advanced)</label><input type="text" name="tpl" value="${cur.tpl ?? ""}" placeholder="modules/my-module/ledger-custom.hbs (GM)" ${isGM ? "" : "disabled"}></div>
+        <p class="notes">Template, banner and custom template are world settings (GM only). Effects, sound and volume are per-client.</p>
+      </form>`;
+    const v = await DialogV2.wait({
+      window: { title: "Ledger Settings" },
+      content,
+      buttons: [
+        { action: "apply", label: "Apply", default: true, callback: (event, button, dlg) => {
+          const q = n => dlg.element.querySelector(`[name="${n}"]`);
+          return { theme: q("theme").value, fx: q("fx").checked, sound: q("sound").checked, volume: Number(q("volume").value), banner: q("banner").value.trim(), tpl: q("tpl").value.trim() };
+        } },
+        { action: "cancel", label: "Cancel" }
+      ]
+    });
+    if (!v || v === "cancel") return;
+    if (game.settings.get(MID, "fx") !== v.fx) await game.settings.set(MID, "fx", v.fx);
+    if (game.settings.get(MID, "sound") !== v.sound) await game.settings.set(MID, "sound", v.sound);
+    if (game.settings.get(MID, "volume") !== v.volume) await game.settings.set(MID, "volume", v.volume);
+    if (isGM) {
+      if (game.settings.get(MID, "theme") !== v.theme) await game.settings.set(MID, "theme", v.theme);
+      if ((game.settings.get(MID, "banner") || "") !== v.banner) await game.settings.set(MID, "banner", v.banner);
+      if ((game.settings.get(MID, "tpl") || "") !== v.tpl) await game.settings.set(MID, "tpl", v.tpl);
+    }
+    LedgerApp.instance?.render();
+  }
+
   static async onCloseMonth() {
     if (!game.user.isGM) return;
     const s = getState(), fx0 = forecast(s), pf = perkFx(s);
@@ -1145,6 +1281,7 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       s.tasks = [];
       const month = s.month;
       s.month += 1;
+      s.momentum = { production: 0, trade: 0 };
       dbg("saving state", { month: s.month, cash: s.cash });
       await LedgerApp.commit(s);
       const avg = avgMorale(s);
@@ -1183,6 +1320,10 @@ export class LedgerApp extends HandlebarsApplicationMixin(ApplicationV2) {
           ${dLines ? `<ul class="routes">${dLines}</ul>` : ""}</div>` });
       }
       dbg("close month: done");
+      // Replay entry animations with real from→to deltas and slam the wax stamp onto the ledger.
+      const app = LedgerApp.instance;
+      if (app?.rendered) { app._pulse = true; app.render(); }
+      app?.stamp(`MONTH ${month} CLOSED<small>${win ? "PROFIT" : "LOSS"} ${f.profit >= 0 ? "+" : ""}${f.profit} · TREASURY ${s.cash}</small>`, win ? "win" : "loss");
     } catch (e) {
       console.error(`${MID} | month close failed`, e);
       ui.notifications.error(`Month close failed: ${e.message}. Check the console (F12). If it failed before saving, nothing changed.`);

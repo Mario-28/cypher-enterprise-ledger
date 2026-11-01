@@ -1,7 +1,7 @@
 {
   "id": "cypher-enterprise-ledger",
   "title": "Cypher Enterprise Ledger",
-  "version": "1.2.0",
+  "version": "1.9.1",
   "description": "Foundry v14+ business management for Cypher System. Gilded magitech UI with gauges, crew, branches, contracts, routes and intrigue.",
   "authors": [
     {
