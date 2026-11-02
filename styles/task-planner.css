@@ -1,0 +1,24 @@
+/* Monthly planning extension; inherits all five installed themes. */
+.cel-app .cel-plan{min-width:0;line-height:1.5}
+.cel-app .cel-plan p{font-size:12px}
+.cel-app .plan-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;margin:16px 0}
+.cel-app .plan-form label,.cel-app .cel-plan>article>label{display:flex;flex-direction:column;gap:6px;font-size:12px;min-width:0}
+.cel-app .plan-form input,.cel-app .plan-form select,.cel-app .cel-plan textarea{width:100%;min-height:35px;box-sizing:border-box}
+.cel-app .cel-plan textarea{min-height:65px;resize:vertical}
+.cel-app .plan-preview{padding:13px 15px;border:1px solid var(--border,#334155);border-left:3px solid var(--accent,#61dfc8);border-radius:9px;background:var(--soft,rgba(97,223,200,.08));font-size:12px}
+.cel-app .plan-note{color:var(--muted,#a1aec4);font-size:11px!important}
+.cel-app .plan-budgets{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:16px 0}
+.cel-app .plan-budget{display:flex;align-items:center;gap:10px;border:1px solid var(--border,#334155);border-radius:10px;padding:12px;background:var(--panel,#141c29)}
+.cel-app .plan-budget img{width:35px;height:35px;border-radius:50%;object-fit:cover;border:0}
+.cel-app .plan-budget small{display:block;color:var(--muted,#a1aec4);font-size:10px;margin-top:3px}
+.cel-app .plan-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px;margin:16px 0}
+.cel-app .plan-assignment{border:1px solid var(--border,#334155);border-radius:12px;padding:18px;background:var(--panel,#141c29);min-width:0}
+.cel-app .plan-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.cel-app .plan-top h4{font-size:14px;margin:0}
+.cel-app .plan-catalog{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:18px;margin-top:18px}
+.cel-app .plan-catalog>div{padding:14px;border:1px solid var(--border,#334155);border-radius:9px}
+.cel-app .plan-catalog small{color:var(--muted,#a1aec4);line-height:1.6}
+.cel-app .cel-plan .cel-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.cel-app .cel-plan .badge{white-space:normal}
+.cel-app .cel-plan .token-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+@media(prefers-reduced-motion:reduce){.cel-app .cel-plan *{animation:none!important;transition:none!important}}

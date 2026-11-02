@@ -1,8 +1,8 @@
 {
   "id": "cypher-enterprise-ledger",
   "title": "Cypher Enterprise Ledger",
-  "version": "2.3.1",
-  "description": "Modern business-management dashboard for Cypher System: weekly PC duties, crew, trade, contracts, branches and intrigue. Five visual themes with AI-generated artwork.",
+  "version": "2.4.0",
+  "description": "Modern Cypher enterprise dashboard with expanded monthly planning, PC delegation, per-PC time and mixed resource commitments. Preserves five visual themes.",
   "authors": [
     {
       "name": "Cypher GOODIES"
@@ -15,11 +15,13 @@
     "verified": "14.369"
   },
   "esmodules": [
-    "scripts/main.mjs"
+    "scripts/main.mjs",
+    "scripts/task-planner.mjs"
   ],
   "styles": [
     "styles/modern.css",
-    "styles/themes.css"
+    "styles/themes.css",
+    "styles/task-planner.css"
   ],
   "languages": [
     {
